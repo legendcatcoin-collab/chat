@@ -3,11 +3,13 @@ import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Role = 'user' | 'assistant' | 'system';
+export type AppMode = 'chat' | 'code' | 'image' | 'islamic';
 
 export interface Message {
   id: string;
   role: Role;
   content: string;
+  image?: string; // base64
   timestamp: number;
 }
 
@@ -26,6 +28,10 @@ interface ChatState {
   setSelectedModel: (model: string) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
+  
+  // App Mode
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
 
   // Chats
   sessions: ChatSession[];
@@ -34,19 +40,22 @@ interface ChatState {
   setActiveSession: (id: string) => void;
   deleteSession: (id: string) => void;
   addMessage: (sessionId: string, message: Omit<Message, 'id' | 'timestamp'>) => void;
-  updateMessage: (sessionId: string, messageId: string, content: string) => void;
+  updateMessage: (sessionId: string, messageId: string, content: string, overrides?: Partial<Message>) => void;
   clearChats: () => void;
 }
 
 export const useStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       apiKey: '',
       setApiKey: (key) => set({ apiKey: key }),
-      selectedModel: 'google/gemini-pro', // default openrouter model
+      selectedModel: 'google/gemini-2.5-flash:free', 
       setSelectedModel: (model) => set({ selectedModel: model }),
       systemPrompt: 'You are a helpful, brilliant, and concise AI assistant.',
       setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
+      
+      mode: 'chat',
+      setMode: (mode) => set({ mode }),
 
       sessions: [],
       activeSessionId: null,
@@ -84,7 +93,6 @@ export const useStore = create<ChatState>()(
           const sessions = state.sessions.map((s) => {
             if (s.id === sessionId) {
               const newMessage: Message = { ...message, id: uuidv4(), timestamp: Date.now() };
-              // Generate title from first user message
               let title = s.title;
               if (s.messages.length === 0 && message.role === 'user') {
                 title = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
@@ -98,19 +106,18 @@ export const useStore = create<ChatState>()(
             }
             return s;
           });
-          // Sort so newest is first
           sessions.sort((a, b) => b.updatedAt - a.updatedAt);
           return { sessions };
         }),
 
-      updateMessage: (sessionId, messageId, content) =>
+      updateMessage: (sessionId, messageId, content, overrides) =>
         set((state) => {
           const sessions = state.sessions.map((s) => {
             if (s.id === sessionId) {
               return {
                 ...s,
                 messages: s.messages.map((m) =>
-                  m.id === messageId ? { ...m, content } : m
+                  m.id === messageId ? { ...m, content, ...overrides } : m
                 ),
                 updatedAt: Date.now(),
               };
@@ -124,7 +131,7 @@ export const useStore = create<ChatState>()(
       clearChats: () => set({ sessions: [], activeSessionId: null }),
     }),
     {
-      name: 'ai-chat-storage', // local storage key
+      name: 'ai-chat-storage', 
     }
   )
 );

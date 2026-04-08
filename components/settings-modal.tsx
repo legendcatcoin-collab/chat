@@ -3,40 +3,52 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Moon, Sun, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, Search, Moon, Sun, CheckCircle2, AlertCircle, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
-import { freeModels } from "@/lib/openrouter-models";
 
 export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
   const { apiKey, setApiKey, selectedModel, setSelectedModel, systemPrompt, setSystemPrompt } = useStore();
   const { theme, setTheme } = useTheme();
   
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [search, setSearch] = useState("");
-
-  const filteredModels = freeModels.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
+  const [modelTestStatus, setModelTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [modelInput, setModelInput] = useState(selectedModel);
 
   const handleTestKey = async () => {
-    if (!apiKey) {
-      setTestStatus('error');
-      return;
-    }
+    if (!apiKey) return setTestStatus('error');
     setTestStatus('testing');
     try {
       const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
         headers: { 'Authorization': `Bearer ${apiKey}` }
       });
-      if (res.ok) {
-        setTestStatus('success');
-      } else {
-        setTestStatus('error');
-      }
+      setTestStatus(res.ok ? 'success' : 'error');
     } catch {
       setTestStatus('error');
     }
-    setTimeout(() => {
-     if(testStatus !== 'testing') setTestStatus('idle'); // clear after a while
-    }, 3000);
+    setTimeout(() => { if(testStatus !== 'testing') setTestStatus('idle'); }, 3000);
+  };
+
+  const handleTestModel = async () => {
+    if (!apiKey || !modelInput) return setModelTestStatus('error');
+    setModelTestStatus('testing');
+    setSelectedModel(modelInput);
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: "POST",
+        headers: { 
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: modelInput,
+          messages: [{role: "user", content: "Hi"}]
+        })
+      });
+      setModelTestStatus(res.ok ? 'success' : 'error');
+    } catch {
+      setModelTestStatus('error');
+    }
+    setTimeout(() => { if(modelTestStatus !== 'testing') setModelTestStatus('idle'); }, 3000);
   };
 
   return (
@@ -57,7 +69,7 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="relative flex h-[90vh] sm:h-[80vh] w-full sm:max-w-md flex-col overflow-hidden bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl"
           >
-            <div className="flex items-center justify-between p-5 border-b border-border">
+            <div className="flex items-center justify-between p-5 border-b border-border bg-background z-10 sticky top-0">
               <h2 className="text-xl font-semibold">Settings</h2>
               <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                 <X className="h-5 w-5" />
@@ -67,68 +79,65 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
             <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-[calc(20px+env(safe-area-inset-bottom))]">
               
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80">OpenRouter API Key (Optional)</label>
+                <label className="text-sm font-medium opacity-80">1. OpenRouter API Key</label>
                 <div className="flex space-x-2">
                   <input
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-or-v1-..."
-                    className="flex-1 rounded-xl border border-border bg-transparent px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="flex-1 rounded-xl border border-border bg-transparent px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
                   />
                   <button
                     onClick={handleTestKey}
                     disabled={testStatus === 'testing' || !apiKey}
-                    className="rounded-xl bg-black/5 dark:bg-white/10 px-4 py-3 font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+                    className="rounded-xl bg-primary text-white px-4 py-3 font-medium hover:opacity-90 disabled:opacity-50 text-sm"
                   >
-                    Test
+                    {testStatus === 'testing' ? '...' : 'Test'}
                   </button>
                 </div>
-                {testStatus === 'success' && <p className="text-sm text-green-500 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> API Key is valid</p>}
-                {testStatus === 'error' && <p className="text-sm text-red-500 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Invalid API Key</p>}
+                {testStatus === 'success' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Valid Key</p>}
+                {testStatus === 'error' && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Invalid Key</p>}
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80">AI Model</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3.5 h-4 w-4 opacity-50" />
+                <label className="text-sm font-medium opacity-80 flex items-center gap-2">
+                  2. Select & Test Model <Zap className="w-3 h-3 text-primary" />
+                </label>
+                <p className="text-xs opacity-50 -mt-1">Input any openrouter model ID manually.</p>
+                <div className="flex space-x-2">
                   <input
                     type="text"
-                    placeholder="Search models..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-transparent pl-9 pr-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    placeholder="e.g. google/gemini-2.5-flash"
+                    value={modelInput}
+                    onChange={(e) => setModelInput(e.target.value)}
+                    className="flex-1 rounded-xl border border-border bg-transparent px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
                   />
+                  <button
+                    onClick={handleTestModel}
+                    disabled={modelTestStatus === 'testing' || !modelInput || !apiKey}
+                    className="rounded-xl bg-black text-white dark:bg-white dark:text-black px-4 py-3 font-medium hover:opacity-90 disabled:opacity-50 text-sm"
+                  >
+                    {modelTestStatus === 'testing' ? '...' : 'Verify'}
+                  </button>
                 </div>
-                <div className="max-h-52 overflow-y-auto space-y-2 rounded-xl border border-border p-2 bg-black/5 dark:bg-white/5">
-                  {filteredModels.map(m => (
-                    <div
-                      key={m.id}
-                      onClick={() => setSelectedModel(m.id)}
-                      className={`cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors ${
-                        selectedModel === m.id ? "bg-primary text-white" : "hover:bg-black/10 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      {m.name}
-                    </div>
-                  ))}
-                  {filteredModels.length === 0 && <p className="text-center text-sm opacity-50 py-4">No models found</p>}
-                </div>
+                {modelTestStatus === 'success' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Model Ready for Real-Time Chat</p>}
+                {modelTestStatus === 'error' && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Model Request Failed</p>}
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80">System Prompt</label>
+                <label className="text-sm font-medium opacity-80">Default System Prompt</label>
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={3}
-                  className="w-full rounded-xl border border-border bg-transparent px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"
+                  className="w-full rounded-xl border border-border bg-transparent px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none text-sm"
                   placeholder="You are a helpful assistant..."
                 />
               </div>
 
               <div className="flex items-center justify-between py-2 border-t border-border mt-4 pt-6">
-                <span className="font-medium">Appearance</span>
+                <span className="font-medium text-sm">Dark Mode</span>
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   className="p-3 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
