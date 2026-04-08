@@ -46,11 +46,16 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
           messages: [{role: "user", content: "Hi"}]
         })
       });
-      setModelTestStatus(res.ok ? 'success' : 'error');
-    } catch {
-      setModelTestStatus('error');
+      if (!res.ok) {
+        const text = await res.text();
+        setModelTestStatus(text as any);
+      } else {
+        setModelTestStatus('success');
+        setTimeout(() => { setModelTestStatus('idle'); }, 3000);
+      }
+    } catch (err: any) {
+      setModelTestStatus(err.message as any);
     }
-    setTimeout(() => { if(modelTestStatus !== 'testing') setModelTestStatus('idle'); }, 3000);
   };
 
   return (
@@ -124,7 +129,12 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                   </button>
                 </div>
                 {modelTestStatus === 'success' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Model Ready for Real-Time Chat</p>}
-                {modelTestStatus === 'error' && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Model Request Failed</p>}
+                {modelTestStatus !== 'idle' && modelTestStatus !== 'testing' && modelTestStatus !== 'success' && (
+                  <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 break-words flex items-start gap-1">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> 
+                    <span className="flex-1 overflow-hidden">{modelTestStatus}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
