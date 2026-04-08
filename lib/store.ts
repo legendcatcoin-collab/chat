@@ -29,6 +29,14 @@ interface ChatState {
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   
+  // Customization
+  textSize: 'small' | 'normal' | 'large';
+  setTextSize: (s: 'small' | 'normal' | 'large') => void;
+  accentColor: string;
+  setAccentColor: (c: string) => void;
+  fontFamily: string;
+  setFontFamily: (f: string) => void;
+  
   // App Mode
   mode: AppMode;
   setMode: (mode: AppMode) => void;
@@ -54,6 +62,13 @@ export const useStore = create<ChatState>()(
       systemPrompt: 'You are a helpful, brilliant, and concise AI assistant.',
       setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
       
+      textSize: 'normal',
+      setTextSize: (s) => set({ textSize: s }),
+      accentColor: '#d97757',
+      setAccentColor: (c) => set({ accentColor: c }),
+      fontFamily: 'sans-serif',
+      setFontFamily: (f) => set({ fontFamily: f }),
+
       mode: 'chat',
       setMode: (mode) => set({ mode }),
 

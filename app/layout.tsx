@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Customizer } from "@/components/customizer";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,10 +30,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased text-foreground bg-background">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Customizer />
           {children}
         </ThemeProvider>
       </body >
     </html>
   );
 }
+
 

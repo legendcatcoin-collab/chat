@@ -148,14 +148,59 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                 />
               </div>
 
-              <div className="flex items-center justify-between py-2 border-t border-border mt-4 pt-6">
-                <span className="font-medium text-sm">Dark Mode</span>
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-3 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                >
-                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                </button>
+              <div className="pt-4 border-t border-border space-y-4">
+                <span className="font-semibold text-lg block mb-1">Appearance Options</span>
+                
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">Text Size</span>
+                  <select
+                    value={useStore(s => s.textSize)}
+                    onChange={(e) => useStore.getState().setTextSize(e.target.value as any)}
+                    className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="small">Small</option>
+                    <option value="normal">Normal</option>
+                    <option value="large">Large</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">Font Family</span>
+                  <select
+                    value={useStore(s => s.fontFamily)}
+                    onChange={(e) => useStore.getState().setFontFamily(e.target.value)}
+                    className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="sans-serif">System Sans</option>
+                    <option value="serif">System Serif</option>
+                    <option value="monospace">Monospace</option>
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">Theme Accent Color</span>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={useStore(s => s.accentColor)}
+                      onChange={(e) => useStore.getState().setAccentColor(e.target.value)}
+                      className="h-8 w-8 rounded cursor-pointer border-0 p-0 bg-transparent"
+                    />
+                    <span className="text-xs opacity-50 uppercase font-mono">{useStore(s => s.accentColor)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-medium text-sm">Dark Mode</span>
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="p-3 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  >
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
 
             </div>
