@@ -193,7 +193,7 @@ export default function Home() {
           <Menu className="h-6 w-6" />
         </button>
         <div className="flex flex-col items-center">
-          <span className="font-bold text-lg leading-tight tracking-tight">AI Chat</span>
+          <span className="font-bold text-lg leading-tight tracking-tight">@sumon_xe</span>
           <span className="text-[10px] uppercase tracking-widest opacity-40 font-bold">{selectedModel?.split('/').pop() || 'Waiting'}</span>
         </div>
         <div className="w-10" />
