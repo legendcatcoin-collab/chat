@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --message-user: #e5e5e5;
+  --message-bot: #ffffff;
+  --border: #e5e5ea;
+  --sidebar: #f4f4f5;
+  --primary: #d97757; /* Claude-like accent */
+}
+
+.dark {
+  --background: #1e1e1e;
+  --foreground: #ededed;
+  --message-user: #2d2d2d;
+  --message-bot: #1e1e1e;
+  --border: #2d2d2d;
+  --sidebar: #171717;
+  --primary: #d97757;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
