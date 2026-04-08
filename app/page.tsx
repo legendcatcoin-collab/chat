@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SettingsModal } from "@/components/settings-modal";
 import { SplashScreen } from "@/components/splash-screen";
 import { ChatMessage } from "@/components/chat-message";
-import { Menu, SendHorizontal, StopCircle, ArrowDown, Mic, Image as ImageIcon, Code2, MessageSquare, MoonStar } from "lucide-react";
+import { Menu, SendHorizontal, StopCircle, ArrowDown, Mic, Image as ImageIcon, Code2, MessageSquare, MoonStar, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 
