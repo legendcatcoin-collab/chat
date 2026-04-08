@@ -37,7 +37,9 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
         method: "POST",
         headers: { 
           'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://aichat.app',
+          'X-Title': 'Mobile AI Chat'
         },
         body: JSON.stringify({
           model: modelInput,
