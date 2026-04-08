@@ -3,15 +3,22 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Moon, Sun, CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { X, Moon, Sun, CheckCircle2, AlertCircle, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
-  const { apiKey, setApiKey, selectedModel, setSelectedModel, systemPrompt, setSystemPrompt } = useStore();
+  const {
+    apiKey, setApiKey,
+    selectedModel, setSelectedModel,
+    systemPrompt, setSystemPrompt,
+    textSize, setTextSize,
+    accentColor, setAccentColor,
+    fontFamily, setFontFamily,
+  } = useStore();
   const { theme, setTheme } = useTheme();
-  
+
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [modelTestStatus, setModelTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [modelTestStatus, setModelTestStatus] = useState<string>('idle');
   const [modelInput, setModelInput] = useState(selectedModel);
 
   const handleTestKey = async () => {
@@ -25,7 +32,7 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
     } catch {
       setTestStatus('error');
     }
-    setTimeout(() => { if(testStatus !== 'testing') setTestStatus('idle'); }, 3000);
+    setTimeout(() => setTestStatus('idle'), 3500);
   };
 
   const handleTestModel = async () => {
@@ -35,7 +42,7 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: "POST",
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://aichat.app',
@@ -43,25 +50,25 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
         },
         body: JSON.stringify({
           model: modelInput,
-          messages: [{role: "user", content: "Hi"}]
+          messages: [{ role: "user", content: "Hi" }]
         })
       });
       if (!res.ok) {
         const text = await res.text();
-        setModelTestStatus(text as any);
+        setModelTestStatus(text);
       } else {
         setModelTestStatus('success');
-        setTimeout(() => { setModelTestStatus('idle'); }, 3000);
+        setTimeout(() => setModelTestStatus('idle'), 3500);
       }
     } catch (err: any) {
-      setModelTestStatus(err.message as any);
+      setModelTestStatus(err.message);
     }
   };
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center pt-[env(safe-area-inset-top)]">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
@@ -76,6 +83,7 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="relative flex h-[90vh] sm:h-[80vh] w-full sm:max-w-md flex-col overflow-hidden bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl"
           >
+            {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border bg-background z-10 sticky top-0">
               <h2 className="text-xl font-semibold">Settings</h2>
               <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
@@ -83,10 +91,11 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-[calc(20px+env(safe-area-inset-bottom))]">
-              
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-10">
+
+              {/* API Key */}
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80">1. OpenRouter API Key</label>
+                <label className="text-sm font-semibold opacity-80">1. OpenRouter API Key</label>
                 <div className="flex space-x-2">
                   <input
                     type="password"
@@ -103,15 +112,20 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                     {testStatus === 'testing' ? '...' : 'Test'}
                   </button>
                 </div>
-                {testStatus === 'success' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Valid Key</p>}
-                {testStatus === 'error' && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Invalid Key</p>}
+                {testStatus === 'success' && (
+                  <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Valid Key</p>
+                )}
+                {testStatus === 'error' && (
+                  <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Invalid Key</p>
+                )}
               </div>
 
+              {/* Model */}
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80 flex items-center gap-2">
+                <label className="text-sm font-semibold opacity-80 flex items-center gap-2">
                   2. Select & Test Model <Zap className="w-3 h-3 text-primary" />
                 </label>
-                <p className="text-xs opacity-50 -mt-1">Input any openrouter model ID manually.</p>
+                <p className="text-xs opacity-50">Enter any OpenRouter model ID (e.g. google/gemini-2.5-flash)</p>
                 <div className="flex space-x-2">
                   <input
                     type="text"
@@ -128,17 +142,23 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                     {modelTestStatus === 'testing' ? '...' : 'Verify'}
                   </button>
                 </div>
-                {modelTestStatus === 'success' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Model Ready for Real-Time Chat</p>}
-                {modelTestStatus !== 'idle' && modelTestStatus !== 'testing' && modelTestStatus !== 'success' && (
+                {modelTestStatus === 'success' && (
+                  <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Model Ready</p>
+                )}
+                {modelTestStatus !== 'idle' && modelTestStatus !== 'testing' && modelTestStatus !== 'success' && modelTestStatus !== 'error' && (
                   <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 break-words flex items-start gap-1">
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> 
-                    <span className="flex-1 overflow-hidden">{modelTestStatus}</span>
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span className="flex-1">{modelTestStatus}</span>
                   </div>
+                )}
+                {modelTestStatus === 'error' && (
+                  <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Model Request Failed</p>
                 )}
               </div>
 
+              {/* System Prompt */}
               <div className="space-y-3">
-                <label className="text-sm font-medium opacity-80">Default System Prompt</label>
+                <label className="text-sm font-semibold opacity-80">Default System Prompt</label>
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
@@ -148,14 +168,16 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                 />
               </div>
 
-              <div className="pt-4 border-t border-border space-y-4">
-                <span className="font-semibold text-lg block mb-1">Appearance Options</span>
-                
+              {/* Appearance */}
+              <div className="pt-4 border-t border-border space-y-5">
+                <span className="font-bold text-base block">Appearance</span>
+
+                {/* Text Size */}
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Text Size</span>
+                  <span className="text-sm font-medium">Text Size</span>
                   <select
-                    value={useStore(s => s.textSize)}
-                    onChange={(e) => useStore.getState().setTextSize(e.target.value as any)}
+                    value={textSize}
+                    onChange={(e) => setTextSize(e.target.value as any)}
                     className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
                   >
                     <option value="small">Small</option>
@@ -164,11 +186,12 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                   </select>
                 </div>
 
+                {/* Font Family */}
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Font Family</span>
+                  <span className="text-sm font-medium">Font Family</span>
                   <select
-                    value={useStore(s => s.fontFamily)}
-                    onChange={(e) => useStore.getState().setFontFamily(e.target.value)}
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
                     className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
                   >
                     <option value="sans-serif">System Sans</option>
@@ -179,21 +202,23 @@ export function SettingsModal({ open, setOpen }: { open: boolean; setOpen: (o: b
                   </select>
                 </div>
 
+                {/* Accent Color */}
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Theme Accent Color</span>
+                  <span className="text-sm font-medium">Accent Color</span>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
-                      value={useStore(s => s.accentColor)}
-                      onChange={(e) => useStore.getState().setAccentColor(e.target.value)}
-                      className="h-8 w-8 rounded cursor-pointer border-0 p-0 bg-transparent"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="h-9 w-9 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
                     />
-                    <span className="text-xs opacity-50 uppercase font-mono">{useStore(s => s.accentColor)}</span>
+                    <span className="text-xs opacity-50 uppercase font-mono">{accentColor}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
-                  <span className="font-medium text-sm">Dark Mode</span>
+                {/* Dark Mode */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Dark Mode</span>
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className="p-3 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
