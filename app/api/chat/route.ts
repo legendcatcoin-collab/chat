@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+const FALLBACK_MODELS = [
+  'google/gemini-2.5-flash:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'qwen/qwen-2-7b-instruct:free',
+  'openchat/openchat-7b:free',
+  'google/gemma-2-9b-it:free',
+  'huggingfaceh4/zephyr-7b-beta:free',
+];
+
+async function callModel(model: string, messages: any[], key: string): Promise<Response> {
+  return fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'HTTP-Referer': 'https://aichat.app',
+      'X-Title': 'Mobile AI Chat',
+    },
+    body: JSON.stringify({ model, messages, stream: true }),
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { messages, apiKey, model, systemPrompt, mode } = await req.json();
@@ -12,68 +35,74 @@ export async function POST(req: NextRequest) {
 
     const key = apiKey || process.env.OPENROUTER_API_KEY;
     if (!key) {
-      return NextResponse.json({ error: 'OpenRouter API Key is missing' }, { status: 401 });
+      return NextResponse.json({ error: 'OpenRouter API Key is missing. Please add one in Settings.' }, { status: 401 });
     }
 
-    const formattedMessages = [];
-    
-    // Inject dynamic system prompt based on mode
-    let finalSystemPrompt = systemPrompt;
+    // Build system prompt based on mode
+    const formattedMessages: any[] = [];
+    let finalSystemPrompt = systemPrompt || 'You are a helpful, brilliant, and concise AI assistant.';
     if (mode === 'code') {
-       finalSystemPrompt = "You are an expert developer. Output full, complete, and perfectly working code in single markdown blocks when requested. Provide robust, clean HTML/CSS/JS without unnecessary comments.";
+      finalSystemPrompt = "You are an expert developer. Output complete, working code in markdown code blocks. Be concise and accurate.";
     } else if (mode === 'islamic') {
-       finalSystemPrompt = "You are a knowledgeable Islamic AI Assistant. Answer all questions according to the Holy Quran and authentic Hadiths with high respect. Never make assumptions on religious fatwas.";
+      finalSystemPrompt = "You are a knowledgeable Islamic AI Assistant. Answer according to the Holy Quran and authentic Hadiths with high accuracy and respect.";
     } else if (mode === 'image') {
-       finalSystemPrompt = "You are an Image Generation Prompt assistant. The user wants to create an image. YOU MUST ONLY respond with a highly detailed, descriptive prompt suitable for Midjourney or DALL-E, followed by standard help if needed. Return ONLY the English prompt text itself on the first line.";
+      finalSystemPrompt = "You are an AI image prompt generator. When asked to create an image, respond ONLY with a detailed, creative English prompt suitable for DALL-E or Midjourney.";
     }
 
-    if (finalSystemPrompt) {
-      formattedMessages.push({ role: 'system', content: finalSystemPrompt });
-    }
-
-    // append rest
+    formattedMessages.push({ role: 'system', content: finalSystemPrompt });
     messages.forEach((m: any) => {
-      let content = m.content;
-      // Handle OpenRouter Multi-modal vision format
+      let content: any = m.content;
       if (m.image) {
         content = [
-          { type: 'text', text: m.content },
+          { type: 'text', text: m.content || '' },
           { type: 'image_url', image_url: { url: m.image } }
         ];
       }
-
       formattedMessages.push({ role: m.role, content });
     });
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-        'HTTP-Referer': 'https://aichat.app', 
-        'X-Title': 'Mobile AI Chat', 
-      },
-      body: JSON.stringify({
-        model: model || 'google/gemini-2.5-flash:free',
-        messages: formattedMessages,
-        stream: true,
-      }),
-    });
+    // Priority: user-selected model first, then fallbacks
+    const modelPriority = [model, ...FALLBACK_MODELS.filter(m => m !== model)];
 
-    if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: `OpenRouter API error: ${err}` }, { status: response.status });
+    let lastError = '';
+    for (const modelId of modelPriority) {
+      try {
+        const response = await callModel(modelId, formattedMessages, key);
+
+        if (response.ok) {
+          return new Response(response.body, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+              'X-Used-Model': modelId,
+            },
+          });
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          return NextResponse.json({ error: 'Invalid API Key. Please check your OpenRouter API key in Settings.' }, { status: 401 });
+        }
+
+        if (response.status === 429 || response.status === 503 || response.status === 404) {
+          lastError = `${modelId} unavailable (${response.status}), trying next...`;
+          continue;
+        }
+
+        lastError = await response.text();
+        continue;
+
+      } catch (e: any) {
+        lastError = e.message;
+        continue;
+      }
     }
 
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    return NextResponse.json({
+      error: `All models are currently rate limited. Please wait a few minutes and try again. (${lastError})`
+    }, { status: 429 });
+
   } catch (error: any) {
-    console.error('Chat API Error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
