@@ -10,6 +10,9 @@ const FALLBACK_MODELS = [
   'openchat/openchat-7b:free',
   'google/gemma-2-9b-it:free',
   'huggingfaceh4/zephyr-7b-beta:free',
+  'arcee-ai/trinity-large-preview:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'z-ai/glm-4.5-air:free',
 ];
 
 async function callModel(model: string, messages: any[], key: string): Promise<Response> {
@@ -18,7 +21,7 @@ async function callModel(model: string, messages: any[], key: string): Promise<R
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${key}`,
-      'HTTP-Referer': 'https://aichat.app',
+      'HTTP-Referer': 'https://chat9.up.railway.app/',
       'X-Title': 'Mobile AI Chat',
     },
     body: JSON.stringify({ model, messages, stream: true }),
