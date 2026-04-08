@@ -17,6 +17,7 @@ const config: Config = {
         },
         border: "var(--border)",
         sidebar: "var(--sidebar)",
+        primary: "var(--primary)",
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
